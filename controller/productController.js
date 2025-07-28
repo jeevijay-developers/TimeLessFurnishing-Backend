@@ -10,9 +10,9 @@ const addProduct = async (req, res) => {
       // productId: cname + (count + 1),
       productId: req.body.productId
         ? req.body.productId
-        :new mongoose.Types.ObjectId(),
-        // old code
-        //  mongoose.Types.ObjectId(),
+        : new mongoose.Types.ObjectId(),
+      // old code
+      //  mongoose.Types.ObjectId(),
     });
     //  console.log('product data',req.body)
 
@@ -54,7 +54,7 @@ const getShowingProducts = async (req, res) => {
 };
 
 const getAllProducts = async (req, res) => {
-  const { title, category, price, page, limit,sku } = req.query;
+  const { title, category, price, page, limit, sku } = req.query;
 
   // console.log("getAllProducts");
 
@@ -252,7 +252,6 @@ const updateStatus = async (req, res) => {
   }
 };
 
-
 const deleteProduct = async (req, res) => {
   try {
     await Product.deleteOne({ _id: req.params.id });
@@ -266,7 +265,6 @@ const deleteProduct = async (req, res) => {
   }
 };
 
-
 const getShowingStoreProducts = async (req, res) => {
   // console.log("req.body", req);
   try {
@@ -274,15 +272,33 @@ const getShowingStoreProducts = async (req, res) => {
 
     // console.log("getShowingStoreProducts");
 
-    const { category, title, slug } = req.query;
+    const { category, title, slug, _id } = req.query;
+    console.log(" _id:", _id);
+    console.log("slug:", slug);
+    console.log("category:", category);
     // console.log("title", title);
 
     // console.log("query", req);
 
+    // old code of category
+    // if (category) {
+    //   queryObject.categories = {
+    //     $in: [category],
+    //   };
+    // }
+
+    
     if (category) {
-      queryObject.categories = {
-        $in: [category],
-      };
+      // 1. Get subcategories
+      const allCategories = await Category.find({
+        $or: [{ _id: category }, { parentId: category }],
+      });
+
+      // 2. Extract all IDs (parent + subcategories)
+      const categoryIds = allCategories.map((cat) => cat._id);
+
+      // 3. Filter products with any of those categories
+      queryObject.categories = { $in: categoryIds };
     }
 
     if (title) {
