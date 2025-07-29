@@ -264,40 +264,146 @@ const deleteProduct = async (req, res) => {
     });
   }
 };
+// old code 
+// const getShowingStoreProducts = async (req, res) => {
+//   // console.log("req.body", req);
+//   try {
+//     const queryObject = { status: "show" };
 
-const getShowingStoreProducts = async (req, res) => {
-  // console.log("req.body", req);
-  try {
-    const queryObject = { status: "show" };
+//     // console.log("getShowingStoreProducts");
 
-    // console.log("getShowingStoreProducts");
+//     const { category, title, slug, _id } = req.query;
+//     console.log(" _id:", _id);
+//     console.log("slug:", slug);
+//     console.log("category:", category);
+//     // console.log("title", title);
 
-    const { category, title, slug, _id } = req.query;
-    console.log(" _id:", _id);
-    console.log("slug:", slug);
-    console.log("category:", category);
-    // console.log("title", title);
+//     // console.log("query", req);
 
-    // console.log("query", req);
-
-    // old code of category
-    // if (category) {
-    //   queryObject.categories = {
-    //     $in: [category],
-    //   };
-    // }
+//     // old code of category
+//     // if (category) {
+//     //   queryObject.categories = {
+//     //     $in: [category],
+//     //   };
+//     // }
 
     
+//     if (category) {
+//       // 1. Get subcategories
+//       const allCategories = await Category.find({
+//         $or: [{ _id: category }, { parentId: category }],
+//       });
+
+//       // 2. Extract all IDs (parent + subcategories)
+//       const categoryIds = allCategories.map((cat) => cat._id);
+
+//       // 3. Filter products with any of those categories
+//       queryObject.categories = { $in: categoryIds };
+//     }
+
+//     if (title) {
+//       const titleQueries = languageCodes.map((lang) => ({
+//         [`title.${lang}`]: { $regex: `${title}`, $options: "i" },
+//       }));
+
+//       queryObject.$or = titleQueries;
+//     }
+//     if (slug) {
+//       queryObject.slug = { $regex: slug, $options: "i" };
+//     }
+
+//     let products = [];
+//     let popularProducts = [];
+//     let discountedProducts = [];
+//     let relatedProducts = [];
+
+//     if (slug) {
+//       products = await Product.find(queryObject)
+//         .populate({ path: "category", select: "name _id" })
+//         .sort({ _id: -1 })
+//         .limit(100);
+//       relatedProducts = await Product.find({
+//         category: products[0]?.category,
+//       }).populate({ path: "category", select: "_id name" });
+//     } else if (title || category) {
+//       products = await Product.find(queryObject)
+//         .populate({ path: "category", select: "name _id" })
+//         .sort({ _id: -1 })
+//         .limit(100);
+//     } else {
+//       popularProducts = await Product.find({ status: "show" })
+//         .populate({ path: "category", select: "name _id" })
+//         .sort({ sales: -1 })
+//         .limit(20);
+
+//       discountedProducts = await Product.find({
+//         status: "show", // Ensure status "show" for discounted products
+//         $or: [
+//           {
+//             $and: [
+//               { isCombination: true },
+//               {
+//                 variants: {
+//                   $elemMatch: {
+//                     discount: { $gt: "0.00" },
+//                   },
+//                 },
+//               },
+//             ],
+//           },
+//           {
+//             $and: [
+//               { isCombination: false },
+//               {
+//                 $expr: {
+//                   $gt: [
+//                     { $toDouble: "$prices.discount" }, // Convert the discount field to a double
+//                     0,
+//                   ],
+//                 },
+//               },
+//             ],
+//           },
+//         ],
+//       })
+//         .populate({ path: "category", select: "name _id" })
+//         .sort({ _id: -1 })
+//         .limit(20);
+//     }
+
+//     res.send({
+//       products,
+//       popularProducts,
+//       relatedProducts,
+//       discountedProducts,
+//     });
+//   } catch (err) {
+//     res.status(500).send({
+//       message: err.message,
+//     });
+//   }
+// };
+
+const getAllCategoryIds = async (parentId) => {
+  const categories = await Category.find({ parentId });
+  const ids = categories.map((cat) => cat._id);
+
+  for (const cat of categories) {
+    const childIds = await getAllCategoryIds(cat._id);
+    ids.push(...childIds);
+  }
+
+  return ids;
+};
+
+const getShowingStoreProducts = async (req, res) => {
+  try {
+    const queryObject = { status: "show" };
+    const { category, title, slug } = req.query;
+
     if (category) {
-      // 1. Get subcategories
-      const allCategories = await Category.find({
-        $or: [{ _id: category }, { parentId: category }],
-      });
-
-      // 2. Extract all IDs (parent + subcategories)
-      const categoryIds = allCategories.map((cat) => cat._id);
-
-      // 3. Filter products with any of those categories
+      // Get the main category + all nested child category IDs
+      const categoryIds = [category, ...(await getAllCategoryIds(category))];
       queryObject.categories = { $in: categoryIds };
     }
 
@@ -305,9 +411,9 @@ const getShowingStoreProducts = async (req, res) => {
       const titleQueries = languageCodes.map((lang) => ({
         [`title.${lang}`]: { $regex: `${title}`, $options: "i" },
       }));
-
       queryObject.$or = titleQueries;
     }
+
     if (slug) {
       queryObject.slug = { $regex: slug, $options: "i" };
     }
@@ -331,13 +437,14 @@ const getShowingStoreProducts = async (req, res) => {
         .sort({ _id: -1 })
         .limit(100);
     } else {
+      // default popular/discounted
       popularProducts = await Product.find({ status: "show" })
         .populate({ path: "category", select: "name _id" })
         .sort({ sales: -1 })
         .limit(20);
 
       discountedProducts = await Product.find({
-        status: "show", // Ensure status "show" for discounted products
+        status: "show",
         $or: [
           {
             $and: [
@@ -356,10 +463,7 @@ const getShowingStoreProducts = async (req, res) => {
               { isCombination: false },
               {
                 $expr: {
-                  $gt: [
-                    { $toDouble: "$prices.discount" }, // Convert the discount field to a double
-                    0,
-                  ],
+                  $gt: [{ $toDouble: "$prices.discount" }, 0],
                 },
               },
             ],
@@ -378,9 +482,7 @@ const getShowingStoreProducts = async (req, res) => {
       discountedProducts,
     });
   } catch (err) {
-    res.status(500).send({
-      message: err.message,
-    });
+    res.status(500).send({ message: err.message });
   }
 };
 
