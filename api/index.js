@@ -54,6 +54,7 @@ app.options("*", cors()); // include before other routes
 const allowedOrigins = [
   process.env.ADMIN_URL,
   process.env.STORE_URL,
+  process.env.STORE_URL_TWO,
 ];
 app.use(
   cors({
