@@ -181,6 +181,24 @@ const getStoreSeoSetting = async (req, res) => {
   }
 };
 
+const getStoreOgSetting = async (req, res) => {
+  // console.log("getStoreOgSetting");
+  try {
+    const storeCustomizationSetting = await Setting.findOne(
+      {
+        name: "storeCustomizationSetting",
+      },
+      { "setting.og": 1, _id: 0 }
+    );
+    // console.log("storeCustomizationSetting", storeCustomizationSetting);
+    res.send(storeCustomizationSetting?.setting);
+  } catch (err) {
+    res.status(500).send({
+      message: err.message,
+    });
+  }
+};
+
 const updateStoreCustomizationSetting = async (req, res) => {
   try {
     const { setting } = req.body;
@@ -216,6 +234,7 @@ module.exports = {
   getStoreSetting,
   updateStoreSetting,
   getStoreSeoSetting,
+  getStoreOgSetting,
   addStoreCustomizationSetting,
   getStoreCustomizationSetting,
   updateStoreCustomizationSetting,

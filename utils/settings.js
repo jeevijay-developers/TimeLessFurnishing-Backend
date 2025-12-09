@@ -895,6 +895,13 @@ const setting = [
           "KachaBazar - React Grocery & Organic Food Store e-commerce Template",
         meta_url: "https://kachabazar-store-nine.vercel.app/",
       },
+      og: {
+        og_description:
+          "React Grocery & Organic Food Store e-commerce Template",
+        og_title:
+          "KachaBazar - React Grocery & Organic Food Store e-commerce Template",
+        og_url: "https://kachabazar-store-nine.vercel.app/",
+      },
     },
     name: "storeCustomizationSetting",
   },

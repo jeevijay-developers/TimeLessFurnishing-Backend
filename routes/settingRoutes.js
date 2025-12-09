@@ -8,6 +8,7 @@ const {
   getStoreSetting,
   updateStoreSetting,
   getStoreSeoSetting,
+  getStoreOgSetting,
   addStoreCustomizationSetting,
   getStoreCustomizationSetting,
   updateStoreCustomizationSetting,
@@ -30,6 +31,7 @@ router.get("/store-setting/all", getStoreSetting);
 
 //get store setting
 router.get("/store-setting/seo", getStoreSeoSetting);
+router.get("/store-setting/og", getStoreOgSetting);
 
 //update store setting
 router.put("/store-setting/update", updateStoreSetting);
