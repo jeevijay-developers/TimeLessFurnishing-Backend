@@ -441,12 +441,15 @@ const forgetPassword = async (req, res) => {
       token: token,
     };
 
+
     const body = {
       from: process.env.EMAIL_USER,
       to: `${req.body.email}`,
       subject: "Password Reset",
       html: forgetPasswordEmailBody(option),
     };
+
+    console.log(option,body);
 
     const message = "Please check your email to reset password!";
     sendEmail(body, res, message);
