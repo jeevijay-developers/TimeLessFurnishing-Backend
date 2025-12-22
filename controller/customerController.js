@@ -434,7 +434,9 @@ const forgetPassword = async (req, res) => {
       message: "User Not found with this email!",
     });
   } else {
-    const token = tokenForVerify(isAdded);
+    // const token = tokenForVerify(isAdded);
+    const token = '';
+    console.log(token);
     const option = {
       name: isAdded.name,
       email: isAdded.email,
