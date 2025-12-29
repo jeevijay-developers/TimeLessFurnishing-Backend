@@ -15,40 +15,33 @@ const Telecaller = require("../models/Telecaller");
 const Partner = require("../models/Partner");
 
 const verifyEmailAddress = async (req, res) => {
-  const phone = req.body.phone;
-  const email = req.body.email;
-  const existingCustomer = await Customer.findOne({
-    $or: [{ email }, { phone }],
-  });
+  const email = (req.body.email || "").toLowerCase();
+  const existingCustomer = await Customer.findOne({ email });
 
   if (existingCustomer) {
-    return res
-      .status(400)
-      .json({ error: "Email or phone number already exists." });
-  } else {
-    const pwd = bcrypt.hashSync(req.body.password);
+    return res.status(400).json({ error: "Email already exists." });
+  }
 
-    const name = req.body.name;
+  const pwd = bcrypt.hashSync(req.body.password);
+  const name = req.body.name;
 
-    const newCustomer = new Customer({
-      name,
-      email,
-      phone,
-      password: pwd,
-    });
-    try {
-      await newCustomer.save();
-    } catch (err) {
-      return res.status(500).send({
-        message: err.message,
-      });
-    }
-
-    res.status(201).json({
-      message: "Customer created successfully",
-      customer: newCustomer,
+  const newCustomer = new Customer({
+    name,
+    email,
+    password: pwd,
+  });
+  try {
+    await newCustomer.save();
+  } catch (err) {
+    return res.status(500).send({
+      message: err.message,
     });
   }
+
+  res.status(201).json({
+    message: "Customer created successfully",
+    customer: newCustomer,
+  });
 };
 // const verifyEmailAddress = async (req, res) => {
 //   const isAdded = await Customer.findOne({ email: req.body.email });
@@ -141,10 +134,10 @@ const addCustomerViaTelecaller = async (req, res) => {
     country,
     city,
     shippingAddress,
-    email,
     phone,
     password,
   } = req.body;
+  const email = (req.body.email || "").toLowerCase();
 
   // Basic validation
   if (!name || !email) {
@@ -153,9 +146,7 @@ const addCustomerViaTelecaller = async (req, res) => {
 
   try {
     // Check if phone or email already exists
-    const existingCustomer = await Customer.findOne({
-      $or: [{ email }, { phone }],
-    });
+    const existingCustomer = await Customer.findOne({ email });
 
     if (existingCustomer) {
       return res
@@ -192,7 +183,8 @@ const addCustomerViaTelecaller = async (req, res) => {
 };
 const loginTelecaller = async (req, res) => {
   try {
-    const telecaller = await Telecaller.findOne({ email: req.body.email });
+    const email = (req.body.email || "").toLowerCase();
+    const telecaller = await Telecaller.findOne({ email });
     console.log(telecaller);
 
     // Check if telecaller exists and role is 'Accepted'
@@ -213,7 +205,7 @@ const loginTelecaller = async (req, res) => {
     }
 
     // Check password
-    const CUSTOMER = await Customer.findOne({ email: req.body.email });
+    const CUSTOMER = await Customer.findOne({ email });
     // console.log(CUSTOMER);
 
     if (
@@ -253,9 +245,8 @@ const loginStorePartner = async (req, res) => {
   // console.log(req.body);
 
   try {
-    const partner = await Partner.findOne({ email: req.body.email }).populate(
-      "riders"
-    );
+    const email = (req.body.email || "").toLowerCase();
+    const partner = await Partner.findOne({ email }).populate("riders");
 
     // Check if telecaller exists and role is 'Accepted'
     if (!partner) {
@@ -275,7 +266,7 @@ const loginStorePartner = async (req, res) => {
     }
 
     // Check password
-    const CUSTOMER = await Customer.findOne({ email: req.body.email });
+    const CUSTOMER = await Customer.findOne({ email });
     // console.log(CUSTOMER);
 
     if (
@@ -317,9 +308,10 @@ const registerCustomer = async (req, res) => {
 
   try {
     const { name, email, password } = jwt.decode(token);
+    const normalizedEmail = (email || "").toLowerCase();
 
     // Check if the user is already registered
-    const isAdded = await Customer.findOne({ email });
+    const isAdded = await Customer.findOne({ email: normalizedEmail });
 
     if (isAdded) {
       const token = signInToken(isAdded);
@@ -345,7 +337,9 @@ const registerCustomer = async (req, res) => {
           }
 
           // Create a new user only if not already registered
-          const existingUser = await Customer.findOne({ email });
+          const existingUser = await Customer.findOne({
+            email: normalizedEmail,
+          });
           console.log("existingUser");
 
           if (existingUser) {
@@ -353,7 +347,7 @@ const registerCustomer = async (req, res) => {
           } else {
             const newUser = new Customer({
               name,
-              email,
+              email: normalizedEmail,
               password: bcrypt.hashSync(password),
             });
 
@@ -394,7 +388,8 @@ const addAllCustomers = async (req, res) => {
 
 const loginCustomer = async (req, res) => {
   try {
-    const customer = await Customer.findOne({ email: req.body.email });
+    const email = (req.body.email || "").toLowerCase();
+    const customer = await Customer.findOne({ email });
 
     // console.log("loginCustomer", req.body.password, "customer", customer);
 
@@ -428,29 +423,26 @@ const loginCustomer = async (req, res) => {
 };
 
 const forgetPassword = async (req, res) => {
-  const isAdded = await Customer.findOne({ email: req.body.email });
+  const email = (req.body.email || "").toLowerCase();
+  const isAdded = await Customer.findOne({ email });
   if (!isAdded) {
     return res.status(404).send({
       message: "User Not found with this email!",
     });
   } else {
-    const token = signInToken(isAdded);
-    console.log(token);
+    const token = tokenForVerify(isAdded);
     const option = {
       name: isAdded.name,
       email: isAdded.email,
       token: token,
     };
 
-
     const body = {
       from: process.env.EMAIL_USER,
-      to: `${req.body.email}`,
+      to: `${email}`,
       subject: "Password Reset",
       html: forgetPasswordEmailBody(option),
     };
-
-    console.log(option,body);
 
     const message = "Please check your email to reset password!";
     sendEmail(body, res, message);
@@ -460,7 +452,8 @@ const forgetPassword = async (req, res) => {
 const resetPassword = async (req, res) => {
   const token = req.body.token;
   const { email } = jwt.decode(token);
-  const customer = await Customer.findOne({ email: email });
+  const normalizedEmail = (email || "").toLowerCase();
+  const customer = await Customer.findOne({ email: normalizedEmail });
 
   if (token) {
     jwt.verify(token, process.env.JWT_SECRET_FOR_VERIFY, (err, decoded) => {
@@ -482,7 +475,8 @@ const resetPassword = async (req, res) => {
 const changePassword = async (req, res) => {
   try {
     // console.log("changePassword", req.body);
-    const customer = await Customer.findOne({ email: req.body.email });
+    const email = (req.body.email || "").toLowerCase();
+    const customer = await Customer.findOne({ email });
     if (!customer.password) {
       return res.status(403).send({
         message:
@@ -513,9 +507,10 @@ const signUpWithProvider = async (req, res) => {
   try {
     // const { user } = jwt.decode(req.body.params);
     const user = jwt.decode(req.params.token);
+    const normalizedEmail = (user.email || "").toLowerCase();
 
     // console.log("user", user);
-    const isAdded = await Customer.findOne({ email: user.email });
+    const isAdded = await Customer.findOne({ email: normalizedEmail });
     if (isAdded) {
       const token = signInToken(isAdded);
       res.send({
@@ -530,7 +525,7 @@ const signUpWithProvider = async (req, res) => {
     } else {
       const newUser = new Customer({
         name: user.name,
-        email: user.email,
+        email: normalizedEmail,
         image: user.picture,
       });
 
@@ -555,7 +550,8 @@ const signUpWithOauthProvider = async (req, res) => {
   try {
     // console.log("user", user);
     // console.log("signUpWithOauthProvider", req.body);
-    const isAdded = await Customer.findOne({ email: req.body.email });
+    const normalizedEmail = (req.body.email || "").toLowerCase();
+    const isAdded = await Customer.findOne({ email: normalizedEmail });
     if (isAdded) {
       const token = signInToken(isAdded);
       res.send({
@@ -570,7 +566,7 @@ const signUpWithOauthProvider = async (req, res) => {
     } else {
       const newUser = new Customer({
         name: req.body.name,
-        email: req.body.email,
+        email: normalizedEmail,
         image: req.body.image,
       });
 
@@ -613,7 +609,7 @@ const getCustomerById = async (req, res) => {
 
 // Shipping address create or update
 
-// old code 
+// old code
 // const addShippingAddress = async (req, res) => {
 //   try {
 //     const customerId = req.params.id;
