@@ -89,24 +89,26 @@ const forgetPassword = async (req, res) => {
     });
   } else {
     const token = tokenForVerify(isAdded);
+    const resetBaseUrl =
+      process.env.ADMIN_URL || process.env.STORE_URL || "http://localhost:3003";
     const body = {
       from: process.env.EMAIL_USER,
       to: `${req.body.verifyEmail}`,
       subject: "Password Reset",
       html: `<h2>Hello ${req.body.verifyEmail}</h2>
-      <p>A request has been received to change the password for your <strong>Kachabazar</strong> account </p>
+      <p>A request has been received to change the password for your <strong>Timeless Furnishing</strong> account </p>
 
         <p>This link will expire in <strong> 15 minute</strong>.</p>
 
         <p style="margin-bottom:20px;">Click this link for reset your password</p>
 
-        <a href=${process.env.ADMIN_URL}/auth/reset-password/${token}  style="background:#22c55e;color:white;border:1px solid #22c55e; padding: 10px 15px; border-radius: 4px; text-decoration:none;">Reset Password </a>
+        <a href=${resetBaseUrl}/auth/reset-password/${token}  style="background:#22c55e;color:white;border:1px solid #22c55e; padding: 10px 15px; border-radius: 4px; text-decoration:none;">Reset Password </a>
 
         
-        <p style="margin-top: 35px;">If you did not initiate this request, please contact us immediately at support@kachabazar.com</p>
+        <p style="margin-top: 35px;">If you did not initiate this request, please contact us immediately at support@timelessfurnishing.com</p>
 
         <p style="margin-bottom:0px;">Thank you</p>
-        <strong>Kachabazar Team</strong>
+        <strong>Timeless Furnishing Team</strong>
              `,
     };
     const message = "Please check your email to reset password!";
