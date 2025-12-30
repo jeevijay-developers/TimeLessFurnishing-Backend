@@ -431,10 +431,17 @@ const forgetPassword = async (req, res) => {
     });
   } else {
     const token = tokenForVerify(isAdded);
+    const storeUrl =
+      process.env.STORE_URL ||
+      process.env.STORE_URL_TWO ||
+      req.get("origin") ||
+      "http://localhost:3003";
+
     const option = {
       name: isAdded.name,
       email: isAdded.email,
       token: token,
+      storeUrl,
     };
 
     const body = {
