@@ -423,7 +423,9 @@ const loginCustomer = async (req, res) => {
 };
 
 const forgetPassword = async (req, res) => {
+  console.log('test');
   const email = (req.body.email || "").toLowerCase();
+  console.log(email);
   const isAdded = await Customer.findOne({ email });
   if (!isAdded) {
     return res.status(404).send({
@@ -431,6 +433,7 @@ const forgetPassword = async (req, res) => {
     });
   } else {
     const token = tokenForVerify(isAdded);
+    console.log(token);
     const storeUrl =
       process.env.STORE_URL ||
       process.env.STORE_URL_TWO ||
