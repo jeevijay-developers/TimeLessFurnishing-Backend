@@ -429,7 +429,7 @@ const forgetPassword = async (req, res) => {
   const isAdded = await Customer.findOne({ email });
   if (!isAdded) {
     return res.status(404).send({
-      message: "User Not found with this email!",
+      message: "This email is not registered with us!",
     });
   } else {
     const token = tokenForVerify(isAdded);
